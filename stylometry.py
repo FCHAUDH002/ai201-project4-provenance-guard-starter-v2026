@@ -64,8 +64,10 @@ def sentence_length_spread(text: str) -> float:
     `stdev` raises on fewer than two values. Decide what that should return
     before the attack set decides for you.
     """
-    # TODO: replace this
-    return 0.0
+    lengths = [len(words(s)) for s in sentences(text)]
+    if len(lengths) < 2:
+        return 0.5
+    return statistics.stdev(lengths) / statistics.mean(lengths)
 
 
 def type_token_ratio(text: str) -> float:
@@ -80,8 +82,10 @@ def type_token_ratio(text: str) -> float:
     directly comparable on it, and if your test inputs vary a lot in length,
     that alone can look like a signal.
     """
-    # TODO: replace this
-    return 0.0
+    w = words(text)
+    if not w:
+        return 0.0
+    return len(set(w)) / len(w)
 
 
 def punctuation_density(text: str) -> float:
@@ -94,8 +98,11 @@ def punctuation_density(text: str) -> float:
         more interesting than full stops, because they vary more between
         writers.
     """
-    # TODO: replace this
-    return 0.0
+    w = words(text)
+    if not w:
+        return 0.0
+    marks = sum(text.count(c) for c in ";:—-\"!?")
+    return marks / len(w)
 
 
 # ── Combining them ───────────────────────────────────────────────────────────
@@ -122,8 +129,12 @@ def style_signal(text: str) -> float:
     you trust it. Plain and ordinary, not formal: formal prose reads as *human*
     to signal one, and it is plain writing that gets accused.
     """
-    # TODO: replace this
-    return 0.5
+    spread = min(sentence_length_spread(text) / 1.0, 1.0) # 1.0 = very uneven
+    punct = min(punctuation_density(text) / 0.04, 1.0) # 0.04 = lots of marks
+    human_ness = (spread + punct) / 2
+    # I left type_token_ratio out on purpose. On my test texts it pointed the wrong way
+    # (the AI text scored as more varied), and it changes with text length.
+    return round(1.0 - human_ness, 4)    # flipped: higher = more AI-like
 
 
 if __name__ == "__main__":

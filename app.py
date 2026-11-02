@@ -203,25 +203,32 @@ def submit():
     text = payload.get("text")
     creator_id = payload.get("creator_id", "unknown")
 
-    import detector
+    import detector, stylometry, scoring
     model_score = detector.model_signal(text)
+    style_score = stylometry.style_signal(text)
+    combined = scoring.combine_signals(model_score, style_score)
+    guess, label = scoring.score_to_label(combined)
 
     content_id = f"c_{uuid.uuid4().hex[:12]}"
 
     audit.log_decision(
         content_id=content_id,
         creator_id=creator_id,
+        guess=guess,
         model_score=model_score,
+        style_score=style_score,
+        combined_score=combined,
+        label=label,
         status="decided",
     )
 
     return jsonify({
         "content_id": content_id,
-        "guess": "unsure",
-        "confidence": 0.5,
-        "label": f"got {creator_id}",
+        "guess": guess,
+        "confidence": combined,
+        "label": label,
         "model_score": model_score,
-        "style_score": None,
+        "style_score": style_score,
     }), 200
 
 @app.post("/appeal")
