@@ -36,10 +36,15 @@
 
 ## What This Does
 
-<!-- The path a submission takes, from arriving to the label a reader sees.
-     Six or seven steps — this is the trace you wrote in Milestone 1. -->
+1. **Request comes in.** A writing site sends the writer's text and an ID to `POST /submit`, and the route pulls both out.
+2. **Check the input.** If the text is missing, empty, not text, under 20 words, or over 5000 characters, the route sends back a 400 error with a message. Nothing is scored or saved as a decision.
+3. **Give it an ID.** The route makes a unique `content_id` for the submission. The appeal needs it later.
+4. **Signal one (gpt2).** A small AI model on my computer scores how predictable the words are, from 0 to 1. Higher means more AI-like.
+5. **Signal two (style).** My code scores the shape of the text (sentence length variety and unusual punctuation), from 0 to 1. Higher means more AI-like.
+6. **Combine and label.** The two scores are averaged into one. That score is compared to the cutoffs (0.35 and 0.80) and turned into a guess ("human", "unsure" or "ai") and a plain-English label.
+7. **Save and reply.** The decision goes into the audit log with all three scores, and the writer gets back the ID, the guess, the confidence, the label, and both signal scores.
 
-
+**Appeals:** A writer sends their `content_id` and why they disagree to `POST /appeal`. If the ID exists, the appeal is logged next to the original decision and the status becomes `under_review`. If it doesn't, they get a 404 and nothing is logged. The original label never changes, and no automatic re-check happens.
 
 ---
 
@@ -54,81 +59,74 @@
 ### Signal one — the model signal
 
 **What it measures:**
+Signal one uses a small AI model (gpt2) on my computer to check how predictable the words are. Predictable text gets a higher score. The score goes from 0 to 1, and higher means more AI-like.
 
 **Why that might differ between human and AI writing:**
+AI usually picks the most likely next word, so its writing is easy to predict. People pick more surprising words.
 
 **What it can't see:**
+Predictable doesn't always mean AI wrote it. Plain writing with simple words and short sentences is also easy to predict. So a real person who writes plainly, like a younger student or someone writing in a second language, can get scored as AI. They also have the hardest time proving they wrote it. I saw this in my tests: a plain paragraph I used for testing scored 0.7718, higher than the clearly-AI sample at 0.7544.
 
 ### Signal two — the style signal
 
 **What it measures:**
+Signal two doesn't read the words. It only looks at the shape of the text: how much the sentence lengths vary, and how much unusual punctuation is used (semicolons, colons, dashes, quotes, ! and ?). It turns these into one score from 0 to 1, and higher means more AI-like. I also tried counting unique words, but I left it out. On my samples it gave the wrong answer (the AI text looked more varied), and it changes depending on how long the text is.
 
 **Why that might differ between human and AI writing:**
+AI text tends to have sentences of similar length and plain punctuation. Human writing is messier, with a short sentence next to a long one and more dashes and colons.
 
 **What it can't see:**
+It can't understand meaning, so anything that changes the shape without changing the meaning can fool it. Adding typos or chopping long sentences into short ones should make AI text look more human. It also gets plain human writing wrong: my plain test paragraph had short, even sentences and no unusual punctuation, so it scored 0.7968, which is more AI-like than the clearly-AI sample (0.6576). If a text has only one sentence, there's nothing to measure, so it gets a neutral 0.5.
 
 ### The combining rule
 
-<!-- Write the rule in words, then give the numbers. What happens when the two
-     signals disagree? -->
-
 **The rule:**
+I take a plain 50/50 average of the two signals. Then I protect real writers with the cutoffs, not with the math. The AI label only shows up when the combined score is above 0.80, which is a high bar. I did this because wrongly accusing a real writer costs more than missing some AI text. Both of my signals misread plain human writing in the same direction, so no way of combining them could fix that. The high cutoff is my only protection.
 
 **The numbers:**
+Model signal weight 0.5, style signal weight 0.5 (set in `config.py`). A score below 0.35 gets the "human" label. A score from 0.35 to 0.80 gets "unsure". A score above 0.80 gets "AI". The cost: some AI text gets through as "unsure". My edited AI sample scored 0.6882, so it was not flagged.
 
 **Where it lives:** `scoring.py::combine_signals`
 
-<!-- ⚠️ The grader checks your code against that line. If your rule lives
-     somewhere else, say where. -->
-
 **A case where my two signals split, and what my rule does with it:**
-
-
+My clearly-human sample split the most. The model signal gave it 0.4445 (unsure territory), but the style signal gave it 0.0 (very human) because of its uneven sentences and dashes. The average, 0.2223, landed in the "human" label. So here the style signal pulled the score down far enough to get the right answer. The reverse happens too: on my plain test paragraph both signals were high (0.7718 and 0.7968), so there was no disagreement to soften, and the average of 0.7843 stopped just short of the AI line at 0.80. That is a lucky margin, not a fix.
 
 ---
 
 ## Label Variants
 
-<!-- The exact text of all three labels, as a reader would see them, and the
-     score range each covers.
-
-     Write them for someone who has never heard the word "threshold". -->
-
 | Label | Score range | The exact text a reader sees |
 |---|---|---|
-| high-confidence human |  |  |
-| unsure |  |  |
-| high-confidence AI |  |  |
+| high-confidence human | 0.00 – 0.35 | We think this was probably written by a person. |
+| unsure | 0.35 – 0.80 | We couldn't tell whether a person or an AI wrote this. You don't need to do anything, but if it matters to you, you can ask us to review it. |
+| high-confidence AI | 0.80 – 1.00 | This text looks a lot like AI writing, but we can be wrong. If you wrote it yourself, you can ask us to review it. |
 
-**Why I worded the "unsure" one this way:**
-<!-- It's the hardest of the three. It has to admit uncertainty without
-     sounding like an accusation, because the person reading it may well have
-     written every word themselves. -->
-
-
+**Why I worded the unsure one this way:**
+"Unsure" means the system really doesn't know, and the person reading it may have written every word themselves. So it says what the system couldn't tell instead of saying anything about the writer. It tells them they don't need to do anything, so it adds no work for them. It still leaves the review option open for when it matters, like a grade or an application. I tested the three labels by pasting them into a fresh chat and asking it to answer as the writer, and the unsure label stayed calm and didn't read as an accusation.
 
 ---
 
 ## Sample Run
 
-<!-- One submission and one appeal, pasted as text: the request, the response,
-     and the log entries. -->
-
 **A submission**
 
-<!-- The response needs content_id, guess, confidence, label, AND both
-     signal scores - model_score and style_score. Unit 8's tools read those
-     two off the response, so leaving them out costs you next unit's
-     diagnostics. -->
+The paragraph is plain writing I used for testing (saved in `samples/plain_human.txt`).
 
 ```bash
 $ curl -X POST http://127.0.0.1:5000/submit \
   -H "Content-Type: application/json" \
-  -d '{"text": "...", "creator_id": "..."}'
+  -d '{"text": "Last weekend I went to my cousin'"'"'s birthday party. We ate pizza and played games in the backyard. My little brother fell in the grass and got mud all over his shirt. Everyone laughed, even him. Then we had cake and I got the biggest piece. It was a fun day. I was tired when we got home, so I went to bed early.", "creator_id": "fatima"}'
 ```
 
 ```json
-
+{
+  "confidence": 0.7843,
+  "content_id": "c_48f7a74bb7d5",
+  "guess": "unsure",
+  "label": "We couldn't tell whether a person or an AI wrote this. You don't need to do anything, but if it matters to you, you can ask us to review it.",
+  "model_score": 0.7718,
+  "style_score": 0.7968
+}
 ```
 
 **An appeal**
@@ -136,21 +134,49 @@ $ curl -X POST http://127.0.0.1:5000/submit \
 ```bash
 $ curl -X POST http://127.0.0.1:5000/appeal \
   -H "Content-Type: application/json" \
-  -d '{"content_id": "...", "reasoning": "..."}'
+  -d '{"content_id": "c_48f7a74bb7d5", "reasoning": "I wrote this myself."}'
 ```
 
 ```json
-
+{
+  "content_id": "c_48f7a74bb7d5",
+  "message": "We got your appeal. Your submission is now under review.",
+  "status": "under_review"
+}
 ```
 
 **What the log shows afterwards**
 
+The full log also holds other test entries (from checking that all three labels can be reached). These are the two entries for this submission and its appeal.
+
 ```bash
-$ curl "http://127.0.0.1:5000/log?limit=3"
+$ curl "http://127.0.0.1:5000/log?limit=10"
 ```
 
 ```json
-
+{
+  "entries": [
+    {
+      "combined_score": 0.7843,
+      "content_id": "c_48f7a74bb7d5",
+      "creator_id": "fatima",
+      "guess": "unsure",
+      "label": "We couldn't tell whether a person or an AI wrote this. You don't need to do anything, but if it matters to you, you can ask us to review it.",
+      "model_score": 0.7718,
+      "status": "decided",
+      "style_score": 0.7968,
+      "timestamp": "2026-11-02T04:46:38+00:00"
+    },
+    {
+      "content_id": "c_48f7a74bb7d5",
+      "creator_id": "fatima",
+      "event": "appeal",
+      "reasoning": "I wrote this myself.",
+      "status": "under_review",
+      "timestamp": "2026-11-02T04:47:54+00:00"
+    }
+  ]
+}
 ```
 
 ---
@@ -159,15 +185,16 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I pasted my three labels into a fresh chat and asked it to answer as the writer: what would I think this says about me, and what would I do next.
+- *What came back:* It said the AI label read as a pattern match and not an accusation. It also said that if the stakes are high (a grade or an application), someone with the "unsure" label might want a review anyway.
+- *What I changed:* I reworded the unsure label to say "if it matters to you, you can ask us to review it," and kept "you don't need to do anything."
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I pasted my false-positive rule (at most 1 in 10 of a person's own pieces labeled AI) into a fresh chat. I asked it to write the message a real writer would send if they were that 1.
+- *What came back:* A message from a writer who wrote her essay herself and still got flagged. She said "1 in 10" feels different when your name is on the flag. She asked for a person to review it and wanted to know who can see the flag and when she'd get an answer.
+- *What I changed:* I kept 1 in 10, because my high AI cutoff (0.80) makes the AI label rare. But I saw that my appeal message says nothing about timing or who sees the flag.
+
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 
