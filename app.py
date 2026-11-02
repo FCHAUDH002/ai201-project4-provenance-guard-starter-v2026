@@ -203,6 +203,16 @@ def submit():
     text = payload.get("text")
     creator_id = payload.get("creator_id", "unknown")
 
+    if not isinstance(text, str) or not text.strip():
+        return jsonify({"error": "bad_request",
+                        "message": "Send JSON with a non-empty \"text\"."}), 400
+    if len(text.split()) < 20:
+        return jsonify({"error": "bad_request",
+                        "message": "Text is too short. Please send at least 20 words."}), 400
+    if len(text) > 5000:
+        return jsonify({"error": "bad_request",
+                        "message": "Text is too long. The limit is 5000 characters."}), 400
+
     import detector, stylometry, scoring
     model_score = detector.model_signal(text)
     style_score = stylometry.style_signal(text)
@@ -253,12 +263,27 @@ def appeal():
     """
     payload = request.get_json(silent=True) or {}
 
-    # TODO: delete this and build the route.
+    payload = request.get_json(silent=True) or {}
+    content_id = payload.get("content_id")
+    reasoning = payload.get("reasoning")
+
+    if not isinstance(content_id, str) or not isinstance(reasoning, str) or not reasoning.strip():
+        return jsonify({"error": "bad_request",
+                        "message": "Send a content_id and your reasoning."}), 400
+
+    entries = audit.entries_for(content_id)
+    if not entries:
+        return jsonify({"error": "not_found",
+                        "message": "We couldn't find that submission. Please check the ID and try again."}), 404
+
+    creator_id = entries[0].get("creator_id", "unknown")
+    audit.log_appeal(content_id, creator_id, reasoning)
+
     return jsonify({
-        "error": "not_implemented",
-        "message": "POST /appeal isn't built yet — see the TODO in app.py.",
-        "you_sent": payload,
-    }), 501
+        "content_id": content_id,
+        "status": "under_review",
+        "message": "We got your appeal. Your submission is now under review.",
+    }), 200
 
 
 # ── Already works ─────────────────────────────────────────────────────────────
