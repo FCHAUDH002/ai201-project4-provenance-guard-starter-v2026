@@ -202,25 +202,25 @@ $ curl "http://127.0.0.1:5000/log?limit=10"
 
 ## Rate Limiting
 
-**My limits:** ___ per minute, ___ per day
+**My limits:** 5 per minute, 50 per day
 
 **Why those numbers and not others:**
-<!-- Think about two people: a real writer submitting their own work a few
-     times an hour, and a script sending a thousand variations to map your
-     thresholds. Your numbers have to be liveable for the first and hostile to
-     the second. -->
+A real writer only submits a few times an hour, so 5 a minute won't get in their way. A script trying to guess my cutoffs has to send lots of tries, and 5 a minute blocks it fast. The 50 a day limit stops a slower script that stays under 5 a minute. 50 is still plenty for a real writer.
 
-**What a caller counts as:** <!-- per address, or per creator_id? They fail
-differently — one script can look like a thousand callers, and one household
-can look like one. -->
+**What a caller counts as:**
+`creator_id`. If a request has no `creator_id`, it counts by IP address instead.
 
 **The run of status codes when I pushed past it:**
 
-<!-- python run_attacks.py --flood 15 -->
-
+```bash
+$ python run_attacks.py --flood 15
 ```
 
 ```
+200 200 200 200 200 429 429 429 429 429 429 429 429 429 429
+```
+
+The first 5 submissions worked and the other 10 were blocked with a 429. The blocked requests were saved in the audit log. The full output is in `results/flood_2026-11-04_2027.md`.
 
 ---
 
