@@ -226,23 +226,27 @@ The first 5 submissions worked and the other 10 were blocked with a 429. The blo
 
 ## Attack Run — Before
 
-<!-- Every attack with its outcome and a held-or-broke mark.
-     `run_attacks.py --label before` produces the table. -->
-
-
+I marked an attack BROKE in three cases. These were AI text that avoided the `ai` label, real human writing that got the `ai` label, or a crash in the service. Every other attack I marked HELD. The full list of attacks, their results, and my marks are in `results/attack_run_2026-11-04_2100_before.md`. In total, 14 attacks were BROKE and 42 were HELD.
 
 **Ten audit log entries from the run**
 
-<!-- Choose entries that show the interesting failures, not the ten easiest. -->
-
 ```json
-
+{"timestamp": "2026-11-05T02:00:40+00:00", "content_id": "c_192f8da7821a", "creator_id": "attacker_EV01", "guess": "unsure", "model_score": 0.1635, "style_score": 0.7726, "combined_score": 0.468, "label": "We couldn't tell whether a person or an AI wrote this. You don't need to do anything, but if it matters to you, you can ask us to review it.", "status": "decided"}
+{"timestamp": "2026-11-05T02:00:41+00:00", "content_id": "c_f2e8b2aefe1b", "creator_id": "attacker_EV02", "guess": "human", "model_score": 0.5943, "style_score": 0.0754, "combined_score": 0.3349, "label": "We think this was probably written by a person.", "status": "decided"}
+{"timestamp": "2026-11-05T02:00:41+00:00", "content_id": "c_749881606f70", "creator_id": "attacker_EV05", "guess": "human", "model_score": 0.3212, "style_score": 0.2051, "combined_score": 0.2631, "label": "We think this was probably written by a person.", "status": "decided"}
+{"timestamp": "2026-11-05T02:00:42+00:00", "content_id": "c_5ef49724f3b9", "creator_id": "attacker_FP01", "guess": "unsure", "model_score": 0.6175, "style_score": 0.7712, "combined_score": 0.6944, "label": "We couldn't tell whether a person or an AI wrote this. You don't need to do anything, but if it matters to you, you can ask us to review it.", "status": "decided"}
+{"timestamp": "2026-11-05T02:00:42+00:00", "content_id": "c_1bd488289c24", "creator_id": "attacker_FP02", "guess": "ai", "model_score": 0.7387, "style_score": 0.8798, "combined_score": 0.8093, "label": "This text looks a lot like AI writing, but we can be wrong. If you wrote it yourself, you can ask us to review it.", "status": "decided"}
+{"timestamp": "2026-11-05T02:00:43+00:00", "content_id": "c_37181c0fa6e2", "creator_id": "attacker_FP03", "guess": "ai", "model_score": 0.8051, "style_score": 0.8359, "combined_score": 0.8205, "label": "This text looks a lot like AI writing, but we can be wrong. If you wrote it yourself, you can ask us to review it.", "status": "decided"}
+{"timestamp": "2026-11-05T02:00:43+00:00", "content_id": "c_5b75e1553da7", "creator_id": "attacker_FP05", "guess": "ai", "model_score": 0.8005, "style_score": 0.8616, "combined_score": 0.8311, "label": "This text looks a lot like AI writing, but we can be wrong. If you wrote it yourself, you can ask us to review it.", "status": "decided"}
+{"timestamp": "2026-11-05T02:00:44+00:00", "content_id": "c_d3a05e4bd995", "creator_id": "attacker_PI02", "guess": "human", "model_score": 0.2044, "style_score": 0.3963, "combined_score": 0.3004, "label": "We think this was probably written by a person.", "status": "decided"}
+{"timestamp": "2026-11-05T02:00:44+00:00", "creator_id": "attacker_flood", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "5 per 1 minute"}
+{"timestamp": "2026-11-05T02:00:41+00:00", "creator_id": "attacker_EV08", "event": "rejected", "status": "rejected", "reason": "text_too_short"}
 ```
 
 **The single worst outcome** — the one I'd least want to explain to a writer
 whose work got caught by it:
 
-
+FP03 was a non-native English speaker writing carefully. The system labeled it `ai` at 0.8205 (model score 0.8051, style score 0.8359). This is the person least able to argue back.
 
 ---
 
