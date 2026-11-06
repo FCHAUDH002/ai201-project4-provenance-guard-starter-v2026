@@ -252,7 +252,7 @@ FP03 was a non-native English speaker writing carefully. The system labeled it `
 
 ## Run Log and Verdicts
 
-I ran `run_eval.py --label before` for criteria 1, 2, 3 and 5. I tested criterion 4 with `appeal_check.py`. Each was run three times and nothing was changed in between.
+I ran `run_eval.py --label before` for criteria 1, 2, 3 and 5. I tested criterion 4 with `appeal_check.py`. Each was run three times and nothing was changed in between. All three runs matched exactly, which is expected because neither signal is random. 
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
@@ -262,7 +262,7 @@ I ran `run_eval.py --label before` for criteria 1, 2, 3 and 5. I tested criterio
 | 4. Appeal path | 5/5 real, 5/5 fake | 5/5 and 5/5 | 5/5 and 5/5 | 5/5 and 5/5 | MET |
 | 5. Bad input | 5 of 5 return 400 | 5/5 | 5/5 | 5/5 | MET |
 
-All three runs matched exactly, which is expected because neither signal is random.
+Criterion 1 was missed because 3 of my 10 pieces were labeled `ai` in all three trials, and my target was at most 1. Criterion 2 was missed because the gap was 0.203 and my target was 0.25. Criteria 3, 4 and 5 were met in all three trials.
 
 **Real output from one trial**, pasted as text, naming the file and function
 that produced it:
@@ -315,11 +315,13 @@ Criterion 5 (produced by `app.py::submit`), empty text:
 
 **Diagnoses**
 
-Criterion 1 missed. Three of my ten pieces were labeled `ai`. Both signals gave them high scores. Signal one reads plain writing as predictable. Signal two only counts a few kinds of punctuation, so my pieces with just commas and periods got a score of 0 and looked AI-like. My combining rule averaged these two wrong readings into a score above 0.80.
+For criterion 1, I missed my target. Three of my ten pieces were labeled `ai`. Both signals gave them high scores. Signal one reads plain writing as predictable. Signal two only counts a few kinds of punctuation, so my pieces with just commas and periods got a score of 0 and looked AI-like. My combining rule averaged these two wrong readings into a score above 0.80.
 
-Criterion 2 missed. Signal one separates the groups well, with AI texts at 0.798 and human texts at 0.414. Signal two barely separates them, with AI texts at 0.728 and human texts at 0.706. My equal weights let the weak signal two pull down the strong signal one, so the combined gap was only 0.203.
+For criterion 2, I also missed my target. Signal one separates the groups well, with AI texts at 0.798 and human texts at 0.414. Signal two barely separates them, with AI texts at 0.728 and human texts at 0.706. My equal weights let the weak signal two pull down the strong signal one, so the combined gap was only 0.203.
 
-Both misses trace back to signal two.
+Several attacks also broke my system. The five false positives (FP02 to FP06) were formal human writing that both signals scored high. RQ07 crashed with a 500 because my route calls `.get` on a JSON array. The eight evasion attacks either changed signal two or stayed under my 0.80 line.
+
+Both of my misses trace back to signal two.
 
 ---
 
