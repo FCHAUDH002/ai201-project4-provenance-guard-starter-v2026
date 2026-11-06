@@ -252,40 +252,74 @@ FP03 was a non-native English speaker writing carefully. The system labeled it `
 
 ## Run Log and Verdicts
 
-<!-- Your five criteria across three trials. `run_eval.py --label before`. -->
+I ran `run_eval.py --label before` for criteria 1, 2, 3 and 5. I tested criterion 4 with `appeal_check.py`. Each was run three times and nothing was changed in between.
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |
+| 1. My own writing flagged as AI | at most 1 of 10 | 3/10 | 3/10 | 3/10 | MISSED |
+| 2. Score spread (known AI vs known human) | gap of at least 0.25 | 0.203 | 0.203 | 0.203 | MISSED |
+| 3. Label coverage | all 3 labels appear | 3/3 | 3/3 | 3/3 | MET |
+| 4. Appeal path | 5/5 real, 5/5 fake | 5/5 and 5/5 | 5/5 and 5/5 | 5/5 and 5/5 | MET |
+| 5. Bad input | 5 of 5 return 400 | 5/5 | 5/5 | 5/5 | MET |
+
+All three runs matched exactly, which is expected because neither signal is random.
 
 **Real output from one trial**, pasted as text, naming the file and function
 that produced it:
 
-```json
+Criterion 1 (produced by `run_eval.py::main` from `app.py::submit`), the piece about music taste:
 
+```json
+{
+  "status": 200,
+  "guess": "ai",
+  "confidence": 0.8478,
+  "model_score": 0.8321,
+  "style_score": 0.8636,
+  "label": "This text looks a lot like AI writing, but we can be wrong. If you wrote it yourself, you can ask us to review it."
+}
+```
+
+Criterion 2, the first known AI text and the first known human text:
+
+```json
+{"status": 200, "guess": "ai", "confidence": 0.9042, "model_score": 0.9099, "style_score": 0.8984}
+{"status": 200, "guess": "unsure", "confidence": 0.7809, "model_score": 0.6162, "style_score": 0.9456}
+```
+
+Criterion 3, the clearly human text:
+
+```json
+{
+  "status": 200,
+  "guess": "human",
+  "confidence": 0.2223,
+  "model_score": 0.4445,
+  "style_score": 0.0,
+  "label": "We think this was probably written by a person."
+}
+```
+
+Criterion 4 (produced by `appeal_check.py`):
+
+```
+real appeals ok: 5/5, log entries added: 5
+fake appeals 404: 5/5, log entries added: 0
+```
+
+Criterion 5 (produced by `app.py::submit`), empty text:
+
+```json
+{"error": "bad_request", "message": "Send JSON with a non-empty \"text\"."}
 ```
 
 **Diagnoses**
 
-<!-- For each miss AND each broken attack: the stage and the mechanism.
+Criterion 1 missed. Three of my ten pieces were labeled `ai`. Both signals gave them high scores. Signal one reads plain writing as predictable. Signal two only counts a few kinds of punctuation, so my pieces with just commas and periods got a score of 0 and looked AI-like. My combining rule averaged these two wrong readings into a score above 0.80.
 
-     Your service has five stages: the route, signal one, signal two, the
-     combining rule, and the label mapping.
+Criterion 2 missed. Signal one separates the groups well, with AI texts at 0.798 and human texts at 0.414. Signal two barely separates them, with AI texts at 0.728 and human texts at 0.706. My equal weights let the weak signal two pull down the strong signal one, so the combined gap was only 0.203.
 
-     Not a diagnosis:  "The evasion attacks got through."
-     A diagnosis:      "Four evasion inputs got through. All four had typos
-                        added to AI-generated text. My second signal measures
-                        word variety, and typos raise word variety — so it read
-                        them as more human. My combining rule weights that
-                        signal at 0.6, so it dragged the whole score down."
-
-     Look for a pattern. Five failures on one signal is one problem, not five. -->
-
-
+Both misses trace back to signal two.
 
 ---
 
