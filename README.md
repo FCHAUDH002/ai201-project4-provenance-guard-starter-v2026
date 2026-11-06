@@ -355,17 +355,17 @@ It also created a new problem. None of my six label coverage inputs reached 0.88
 
 ## What's Still Broken
 
-<!-- For each attack still getting through and each criterion still missed:
-     what you'd do, and why you stopped. -->
+Criterion 2 is still missed. Signal two barely separates AI text from human text, so I would give signal one more weight. I stopped because the brief allows only one change.
 
+Criterion 3 is now missed. None of my six test inputs reach the new AI line of 0.88, so I would add a clearly AI text that scores above it. I stopped because changing my test inputs would make the before and after runs impossible to compare.
 
+Eight evasion attacks still get through (EV01 to EV07 and EV09). I would make signal two harder to fool with typos and split sentences.
+
+RQ07 still crashes with a 500 because my route calls `.get` on a JSON array. I would check that the body is an object first. 
 
 **The trade I'd make if this ran for real:**
 
-<!-- Two sentences. Fewer wrong accusations means more AI text getting through.
-     Say which way you'd go and WHO PAYS FOR IT. -->
-
-
+I would keep the high AI line, because a wrongly accused writer loses far more than the site loses from missing some AI text. The cost falls on the site and on honest writers whose work competes with AI text, since almost nothing is now labeled `ai`.
 
 <!-- ═════════════════════════════════════════════════════════════════════
 
